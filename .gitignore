@@ -1,0 +1,22 @@
+# Compiled python modules
+__pycache__/
+*.pyc
+*.pyo
+
+# Executables and builds
+build/
+dist/
+*.spec
+*.exe
+*.pkg
+*.toc
+*.zip
+*.pyz
+
+# Logs and local databases
+*.log
+memoria_jarvis.txt
+
+# OS generated files
+.DS_Store
+Thumbs.db
