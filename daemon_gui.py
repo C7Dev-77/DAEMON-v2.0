@@ -21,6 +21,7 @@ import pyjokes
 import speech_recognition as sr
 import pyttsx3
 import winsound
+import numpy as np
 
 # =============================================================================
 # SEGURIDAD Y PREVENCIÓN DE ERRORES PYAUTOGUI
@@ -1066,6 +1067,124 @@ def process_command(cmd_raw):
     return "AI", reply
 
 # =============================================================================
+# NEBULOSA GALÁCTICA 3D: CONSTANTES Y HELPERS
+# =============================================================================
+SIZE = 100            # Lado del lienzo en px (100 = widget; 740 = tamaño del logo)
+N_RING = 1400         # Partículas del anillo galáctico
+N_CORE_LAT = 28       # Rejilla del núcleo: latitudes
+N_CORE_LON = 36       # Rejilla del núcleo: longitudes (~1000 puntos)
+PERSP_F = 10.0        # Distancia de perspectiva (mayor = menos distorsión)
+TILT_DEG = 20         # Inclinación fija en el eje X
+GRAD_LEVELS = 32      # Niveles de gradiente de color precalculados
+DEPTH_LEVELS = 8      # Niveles de brillo por profundidad
+DEEP = (10, 15, 42)   # #0a0f2a azul marino (núcleo)
+
+SPIN_SPEED = {"idle": 0.6, "listening": 1.9, "thinking": 3.6, "paused": 0.12}  # grados/frame
+
+# Paletas: de arriba (g=0) a abajo (g=1)
+PALETTES = {
+    "spectral": ["#00f5ff", "#d800ff", "#ff8800"],
+    "cyan":     ["#e0ffff", "#00f5ff", "#005588"],
+    "amber":    ["#fff4cc", "#ffaa00", "#884400"],
+    "green":    ["#d4ffe6", "#00ff88", "#006633"],
+    "red":      ["#ffd6dc", "#ff2244", "#880818"],
+    "purple":   ["#f5d4ff", "#d800ff", "#5a0088"],
+    "paused":   ["#883344", "#4a1525", "#240812"],
+}
+
+def _hex_rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+def _rgb_hex(c):
+    return "#%02x%02x%02x" % tuple(max(0, min(255, int(v))) for v in c)
+
+def _mix(a, b, t):
+    return tuple(x + (y - x) * t for x, y in zip(a, b))
+
+def _ramp(stops, g):
+    rgbs = [_hex_rgb(s) for s in stops]
+    pos = g * (len(rgbs) - 1)
+    i = min(int(pos), len(rgbs) - 2)
+    return _mix(rgbs[i], rgbs[i + 1], pos - i)
+
+def _build_lut(stops):
+    """LUT[gradiente][profundidad] -> color hex. Evita calcular colores por frame."""
+    lut = []
+    for gi in range(GRAD_LEVELS):
+        base = _ramp(stops, gi / (GRAD_LEVELS - 1))
+        row = []
+        for di in range(DEPTH_LEVELS):
+            b = 0.25 + 0.75 * di / (DEPTH_LEVELS - 1)  # atrás = tenue, delante = brillante
+            row.append(_rgb_hex([c * b for c in base]))
+        lut.append(row)
+    return lut
+
+def _core_stops(ring_stops):
+    s = ring_stops
+    return [
+        _rgb_hex(_mix(_hex_rgb(s[0]), DEEP, 0.8)),
+        _rgb_hex(_mix(_hex_rgb(s[1]), DEEP, 0.8)),
+        _rgb_hex(_mix(_hex_rgb(s[0]), (255, 255, 255), 0.6)),  # chispas brillantes
+    ]
+
+_LUT_CACHE = {}
+
+def _get_luts(key):
+    if key not in _LUT_CACHE:
+        ring_stops = PALETTES[key]
+        _LUT_CACHE[key] = (_build_lut(ring_stops), _build_lut(_core_stops(ring_stops)))
+    return _LUT_CACHE[key]
+
+_CLOUD = None
+
+def _get_cloud():
+    """Genera la nube de partículas una sola vez."""
+    global _CLOUD
+    if _CLOUD is not None:
+        return _CLOUD
+    rng = np.random.default_rng(77)
+
+    # (a) Anillo galáctico con dispersión gaussiana en radio y altura
+    th = rng.uniform(0, 2 * np.pi, N_RING)
+    phi = np.clip(rng.normal(0, 0.22, N_RING), -0.6, 0.6)
+    rr = 0.92 + rng.normal(0, 0.06, N_RING)
+    ring = np.stack([rr * np.cos(phi) * np.cos(th),
+                     rr * np.sin(phi),
+                     rr * np.cos(phi) * np.sin(th)], axis=1)
+    ring_g = np.clip(0.5 - 0.9 * np.sin(phi) + rng.normal(0, 0.08, N_RING), 0, 1)
+
+    # (b) Núcleo esférico con textura de rejilla
+    lat = np.arcsin(np.linspace(-0.92, 0.92, N_CORE_LAT))
+    lon = np.linspace(0, 2 * np.pi, N_CORE_LON, endpoint=False)
+    LA, LO = np.meshgrid(lat, lon, indexing="ij")
+    LA, LO = LA.ravel(), LO.ravel()
+    n_core = LA.size
+    rc = 0.78
+    core = np.stack([rc * np.cos(LA) * np.cos(LO),
+                     rc * np.sin(LA),
+                     rc * np.cos(LA) * np.sin(LO)], axis=1)
+    core += rng.normal(0, 0.01, core.shape)
+    core_g = rng.uniform(0, 0.45, n_core)
+    sparks = rng.random(n_core) < 0.06
+    core_g[sparks] = rng.uniform(0.95, 1.0, int(sparks.sum()))
+
+    P = np.vstack([ring, core])
+    G = np.concatenate([ring_g, core_g])
+    theta = np.concatenate([th, np.zeros(n_core)])
+    is_ring = np.r_[np.ones(N_RING, bool), np.zeros(n_core, bool)]
+    size = rng.uniform(0.9, 1.7, len(P))
+    rad = np.hypot(P[:, 0], P[:, 2])
+    spiral_w = np.where(is_ring, np.clip((rad - 0.85) / 0.15, 0, 1), 0.0)
+
+    _CLOUD = {
+        "P": P, "G": G, "size": size, "theta": theta,
+        "is_ring": is_ring, "is_ring_list": is_ring.tolist(),
+        "spiral_w": spiral_w,
+    }
+    return _CLOUD
+
+# =============================================================================
 # WIDGET FLOTANTE ARC REACTOR (EL ÚNICO QUE APARECE AL INICIO)
 # =============================================================================
 class FloatingArcWidget:
@@ -1077,7 +1196,7 @@ class FloatingArcWidget:
         self.root.attributes('-topmost', True)
         self.root.attributes('-alpha', 0.94)
 
-        self.size = 100
+        self.size = SIZE
         screen_w = self.root.winfo_screenwidth()
         self.root.geometry(f"{self.size}x{self.size}+{screen_w - 130}+40")
         self.bg_color = '#000001'
@@ -1103,19 +1222,6 @@ class FloatingArcWidget:
         self._offset_y = 0
         self._press_time = 0
 
-        # Partículas de la Nebulosa Galáctica Espectral 3D
-        self.nebula_particles = []
-        random.seed(77)
-        for _ in range(88):
-            phi = random.uniform(-math.pi / 2, math.pi / 2)
-            theta = random.uniform(0, 2 * math.pi)
-            r_mult = random.uniform(0.82, 1.18)
-            speed = random.uniform(0.75, 1.3)
-            size_base = random.uniform(1.2, 2.6)
-            self.nebula_particles.append({
-                'phi': phi, 'theta': theta, 'r_mult': r_mult,
-                'speed': speed, 'size': size_base
-            })
         self.blink_counter = 0
 
         self.root.bind('<ButtonPress-1>', self._on_press)
@@ -1256,164 +1362,99 @@ class FloatingArcWidget:
             self._draw_galactic_nebula(cx, cy, state_mode, custom_theme)
 
     def _draw_galactic_nebula(self, cx, cy, state_mode, custom_theme):
-        r_base = 34
+        cloud = _get_cloud()
+        k = self.size / 100.0            # escala global: todo se multiplica por k
+        R = 0.446 * self.size            # radio visible de la esfera (~89% del diámetro)
+        t = self.pulse_angle
         self.blink_counter = (self.blink_counter + 1) % 180
 
-        # 1. Base esférica cósmica profunda para click y arrastre
-        self.canvas.create_oval(cx - 44, cy - 44, cx + 44, cy + 44, fill='#020308', outline='')
+        # 0. Zona de clic invisible (mantiene clic, arrastre y menú con transparentcolor)
+        r_hit = R + 2 * k
+        self.canvas.create_oval(cx - r_hit, cy - r_hit, cx + r_hit, cy + r_hit,
+                                fill="#020308", stipple="gray25", outline="")
 
-        # 2. Anillo HUD Cyberpunk Tecnológico (Inspirado en HUD Sci-Fi)
-        self.canvas.create_oval(cx - 39, cy - 39, cx + 39, cy + 39, outline='#0a1c2b', width=1)
-        
-        # Segmentos de arco giratorio HUD
-        arc_ang = (self.pulse_angle * 0.9) % 360
-        hud_cyan = '#00f0ff' if state_mode != 'paused' else '#551122'
-        self.canvas.create_arc(
-            cx - 39, cy - 39, cx + 39, cy + 39,
-            start=arc_ang, extent=42, style='arc',
-            outline=hud_cyan, width=1.5
-        )
-        self.canvas.create_arc(
-            cx - 39, cy - 39, cx + 39, cy + 39,
-            start=arc_ang + 180, extent=42, style='arc',
-            outline=hud_cyan, width=1.5
-        )
+        # 1. Velocidad de giro según estado
+        self._spin = (getattr(self, "_spin", 0.0) + SPIN_SPEED[state_mode]) % 360
 
-        # 3. Rayos de Espectro Radial cuando está escuchando o procesando
-        if state_mode == 'listening':
-            for bi in range(16):
-                b_ang = (bi / 16.0) * (2 * math.pi) + math.radians(self.pulse_angle * 0.5)
-                h_ray = 3 + int(5.0 * (math.sin(self.pulse_angle * 0.2 + bi * 0.8) ** 2))
-                rx1 = cx + int((r_base + 3) * math.cos(b_ang))
-                ry1 = cy + int((r_base + 3) * math.sin(b_ang))
-                rx2 = cx + int((r_base + 3 + h_ray) * math.cos(b_ang))
-                ry2 = cy + int((r_base + 3 + h_ray) * math.sin(b_ang))
-                self.canvas.create_line(rx1, ry1, rx2, ry2, fill='#00ffff', width=1.5)
+        # 2. Deformaciones por estado (respiración en idle, ondas en listening)
+        ring = cloud["is_ring"]
+        radial = np.ones(len(cloud["P"]))
+        if state_mode == "idle":
+            radial[:] = 1 + 0.02 * math.sin(t * 0.05)
+        elif state_mode == "listening":
+            radial[ring] = 1 + 0.07 * np.sin(cloud["theta"][ring] * 4 - t * 0.25)
+        P = cloud["P"] * np.column_stack([radial, np.ones_like(radial), radial])
 
-        # 4. Partículas de la Nebulosa Galáctica 3D (Inspirada en el logo espectral)
-        tilt = math.radians(22)
-        cos_t = math.cos(tilt)
-        sin_t = math.sin(tilt)
+        # 3. Rotación en Y (con espiral en el anillo exterior al pensar)
+        ang = np.full(len(P), math.radians(self._spin))
+        if state_mode == "thinking":
+            ang = ang + cloud["spiral_w"] * (0.9 + 0.3 * math.sin(t * 0.05))
+        c, s = np.cos(ang), np.sin(ang)
+        x = P[:, 0] * c + P[:, 2] * s
+        z = -P[:, 0] * s + P[:, 2] * c
+        y = P[:, 1]
 
-        # Velocidad según estado
-        if state_mode == 'thinking':
-            speed_mult = 3.2
-        elif state_mode == 'listening':
-            speed_mult = 1.6
-        elif state_mode == 'paused':
-            speed_mult = 0.25
+        # 4. Inclinación fija en X
+        ct = math.cos(math.radians(TILT_DEG))
+        st = math.sin(math.radians(TILT_DEG))
+        y2 = y * ct - z * st
+        z2 = y * st + z * ct
+
+        # 5. Proyección en perspectiva (normalizada: el frente mide exactamente R)
+        persp = (PERSP_F - 1.3) / (PERSP_F - z2)
+        sx = (cx + x * R * persp).tolist()
+        sy = (cy - y2 * R * persp).tolist()
+        zn = np.clip((z2 + 1.3) / 2.6, 0, 1)  # 0 = atrás, 1 = delante
+
+        # 6. Color y tamaño por partícula
+        key = "paused" if state_mode == "paused" else next(
+            (p for p in PALETTES if p != "paused" and p in custom_theme), "spectral")
+        ring_lut, core_lut = _get_luts(key)
+
+        gshift = 0.12 * math.sin(t * 0.07) if state_mode == "thinking" else 0.0
+        g = np.clip(cloud["G"] + gshift, 0, 1)
+        gi = np.rint(g * (GRAD_LEVELS - 1)).astype(int).tolist()
+        di = np.rint(zn * (DEPTH_LEVELS - 1)).astype(int)
+        if state_mode == "listening":
+            di = np.minimum(di + 1, DEPTH_LEVELS - 1)  # brillo sube al escuchar
+        di = di.tolist()
+
+        size_px = cloud["size"] * k * (0.55 + 0.75 * zn)
+        if state_mode == "listening":
+            size_px = size_px * 1.1
+        size_px = size_px.tolist()
+
+        ring_flags = cloud["is_ring_list"]
+        order = np.argsort(z2).tolist()  # painter's algorithm: fondo primero
+
+        # 7. Dibujo
+        for i in order:
+            sz = size_px[i]
+            if sz < 0.35:
+                continue
+            lut = ring_lut if ring_flags[i] else core_lut
+            px, py = sx[i], sy[i]
+            self.canvas.create_oval(px - sz, py - sz, px + sz, py + sz,
+                                    fill=lut[gi[i]][di[i]], outline="")
+
+        # 8. Ojos centrales (se conservan los estados de la app)
+        lx, rx, ey = cx - 5.5 * k, cx + 5.5 * k, cy
+        blinking = 175 <= self.blink_counter <= 179 and state_mode != "listening"
+        if state_mode == "paused" or blinking:
+            col = "#441525" if state_mode == "paused" else "#88aacc"
+            for ex in (lx, rx):
+                self.canvas.create_line(ex - 2 * k, ey, ex + 2 * k, ey,
+                                        fill=col, width=max(1, k))
         else:
-            speed_mult = 1.0
-
-        render_list = []
-        for p in self.nebula_particles:
-            cur_theta = p['theta'] + math.radians(self.pulse_angle * p['speed'] * speed_mult)
-            
-            # Dinámica radial
-            if state_mode == 'listening':
-                r_pulse = math.sin(cur_theta * 3 + self.pulse_angle * 0.2) * 3.5
-            elif state_mode == 'thinking':
-                r_pulse = -2.5 + math.sin(cur_theta * 4 + self.pulse_angle * 0.3) * 1.5
-            elif state_mode == 'paused':
-                r_pulse = 0
+            if state_mode == "listening":
+                r_e, outline = 2.4 * k, "#00f5ff"
+            elif state_mode == "thinking":
+                r_e, outline = (1.8 + 0.6 * math.sin(t * 0.3)) * k, "#d800ff"
             else:
-                r_pulse = math.sin(cur_theta * 2.5 + self.pulse_angle * 0.08) * 1.8
-
-            r = r_base * p['r_mult'] + r_pulse
-            
-            # Coordenadas 3D
-            x3d = r * math.cos(p['phi']) * math.cos(cur_theta)
-            y3d = r * math.sin(p['phi'])
-            z3d = r * math.cos(p['phi']) * math.sin(cur_theta)
-
-            # Proyección isométrica con inclinación
-            px = cx + x3d
-            py = cy + (y3d * cos_t - z3d * sin_t)
-
-            # Mapeo de color espectral por latitud y tema
-            norm_y = (py - (cy - r_base)) / (2 * r_base)
-
-            if state_mode == 'paused':
-                col = '#4a1525' if z3d > 0 else '#240812'
-                core_col = '#883344'
-            elif any(w in custom_theme for w in ["cyan", "azul"]):
-                col = '#00f5ff' if z3d > 0 else '#005588'
-                core_col = '#e0ffff'
-            elif any(w in custom_theme for w in ["ambar", "ámbar", "amber", "oro"]):
-                col = '#ffaa00' if z3d > 0 else '#884400'
-                core_col = '#fff4cc'
-            elif any(w in custom_theme for w in ["verde", "green"]):
-                col = '#00ff88' if z3d > 0 else '#006633'
-                core_col = '#d4ffe6'
-            elif any(w in custom_theme for w in ["rojo", "red"]):
-                col = '#ff2244' if z3d > 0 else '#880818'
-                core_col = '#ffd6dc'
-            elif any(w in custom_theme for w in ["purpura", "púrpura", "purple"]):
-                col = '#d800ff' if z3d > 0 else '#5a0088'
-                core_col = '#f5d4ff'
-            else:
-                # Tema Espectral Nebulosa Completo (Multicolor exactamente como su imagen)
-                if norm_y < 0.36:
-                    # Polo Superior: Cyan Neón y Azul Espacial
-                    col = '#00f5ff' if z3d > 0 else '#004488'
-                    core_col = '#ffffff'
-                elif norm_y < 0.64:
-                    # Banda Ecuatorial: Violeta Eléctrico y Magenta Cósmico
-                    col = '#d800ff' if z3d > 0 else '#4a0066'
-                    core_col = '#ffb8f8'
-                else:
-                    # Polo Inferior: Ámbar Solar y Coral Llameante
-                    col = '#ff8800' if z3d > 0 else '#882200'
-                    core_col = '#ffeeaa'
-
-            pt_size = p['size'] * (1.3 if z3d > 0 else 0.7)
-            render_list.append((z3d, px, py, pt_size, col, core_col))
-
-        # Ordenar por profundidad (fondo primero, frente después)
-        render_list.sort(key=lambda item: item[0])
-
-        for z3d, px, py, s, col, core_col in render_list:
-            self.canvas.create_oval(px - s, py - s, px + s, py + s, fill=col, outline='')
-            if z3d > 10 and s > 1.6:
-                self.canvas.create_oval(px - 0.7, py - 0.7, px + 0.7, py + 0.7, fill=core_col, outline='')
-
-        # 5. Horizonte de Sucesos Central / Núcleo Oscuro Profundo
-        r_void = 14
-        self.canvas.create_oval(cx - r_void, cy - r_void, cx + r_void, cy + r_void, fill='#020309', outline='#120824', width=1.5)
-        self.canvas.create_oval(cx - r_void + 3, cy - r_void + 3, cx + r_void - 3, cy + r_void - 3, outline='#1d0f35', width=1)
-
-        # 6. Ojos de IA Cósmica / Pulsar Dual (Inspirado en su imagen 2)
-        eye_y = cy
-        eye_lx = cx - 5.5
-        eye_rx = cx + 5.5
-
-        # Parpadeo natural
-        is_blinking = (175 <= self.blink_counter <= 179) and (state_mode != 'listening')
-
-        if state_mode == 'paused':
-            # Ojos cerrados / línea tenue
-            self.canvas.create_line(eye_lx - 2, eye_y, eye_lx + 2, eye_y, fill='#441525', width=1)
-            self.canvas.create_line(eye_rx - 2, eye_y, eye_rx + 2, eye_y, fill='#441525', width=1)
-        elif is_blinking:
-            self.canvas.create_line(eye_lx - 2, eye_y, eye_lx + 2, eye_y, fill='#88aacc', width=1)
-            self.canvas.create_line(eye_rx - 2, eye_y, eye_rx + 2, eye_y, fill='#88aacc', width=1)
-        elif state_mode == 'listening':
-            # Ojos abiertos y resplandecientes en cyan
-            er = 2.4
-            self.canvas.create_oval(eye_lx - er - 1.5, eye_y - er - 1.5, eye_lx + er + 1.5, eye_y + er + 1.5, fill='#004466', outline='')
-            self.canvas.create_oval(eye_rx - er - 1.5, eye_y - er - 1.5, eye_rx + er + 1.5, eye_y + er + 1.5, fill='#004466', outline='')
-            self.canvas.create_oval(eye_lx - er, eye_y - er, eye_lx + er, eye_y + er, fill='#ffffff', outline='#00f5ff')
-            self.canvas.create_oval(eye_rx - er, eye_y - er, eye_rx + er, eye_y + er, fill='#ffffff', outline='#00f5ff')
-        elif state_mode == 'thinking':
-            # Ojos pulsantes violeta
-            er = 1.8 + math.sin(self.pulse_angle * 0.3) * 0.6
-            self.canvas.create_oval(eye_lx - er, eye_y - er, eye_lx + er, eye_y + er, fill='#ffffff', outline='#d800ff')
-            self.canvas.create_oval(eye_rx - er, eye_y - er, eye_rx + er, eye_y + er, fill='#ffffff', outline='#d800ff')
-        else:
-            # Idle: Dos puntos brillantes con aura suave
-            er = 1.8
-            self.canvas.create_oval(eye_lx - er, eye_y - er, eye_lx + er, eye_y + er, fill='#ffffff', outline='#77aaff')
-            self.canvas.create_oval(eye_rx - er, eye_y - er, eye_rx + er, eye_y + er, fill='#ffffff', outline='#77aaff')
+                r_e, outline = 1.8 * k, "#77aaff"
+            for ex in (lx, rx):
+                self.canvas.create_oval(ex - r_e, ey - r_e, ex + r_e, ey + r_e,
+                                        fill="#ffffff", outline=outline)
 
     def _draw_classic_reactor(self, cx, cy, state_mode, custom_theme):
         r_ring = 35
@@ -1510,7 +1551,7 @@ class FloatingArcWidget:
     def _animate(self):
         self.pulse_angle = (self.pulse_angle + 2) % 360
         self._draw_reactor()
-        self.root.after(35, self._animate)
+        self.root.after(33, self._animate)  # ~30 FPS
 
 # =============================================================================
 # VENTANA PRINCIPAL HOME
