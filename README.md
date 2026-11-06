@@ -1,14 +1,14 @@
 <div align="center">
-  <img src="daemon_logo.png" width="180" alt="D.A.E.M.O.N. Cyber Reactor Logo" />
+  <img src="daemon_logo.png" width="180" alt="D.A.E.M.O.N. Cyber Logo" />
   <h1>⚡ D.A.E.M.O.N. V2.0</h1>
   <h3>Digital Automated Entity for Monitoring & Operations Network</h3>
-  <p><i>Evolución de siguiente generación de J.A.R.V.I.S. V1.0 — Asistente Cibernético Personal Autónomo para Windows</i></p>
+  <p><i>Asistente Cibernético Personal Autónomo para Windows con Inteligencia Artificial Local y HUD Espectral 3D</i></p>
 
   <p>
     <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
     <img src="https://img.shields.io/badge/Ollama-Local_AI-000000?style=for-the-badge&logo=Ollama&logoColor=white" alt="Ollama" />
     <img src="https://img.shields.io/badge/GUI-CustomTkinter-1f6feb?style=for-the-badge" alt="CustomTkinter" />
-    <img src="https://img.shields.io/badge/HUD-Arc_Reactor-FF9900?style=for-the-badge" alt="Arc Reactor HUD" />
+    <img src="https://img.shields.io/badge/HUD-Nebula_3D-9900FF?style=for-the-badge" alt="Nebula 3D HUD" />
     <img src="https://img.shields.io/badge/Windows-11_CoreAudio-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows" />
     <img src="https://img.shields.io/badge/License-MIT-success?style=for-the-badge" alt="License MIT" />
   </p>
@@ -20,65 +20,68 @@
 
 ## 📖 Acerca del Proyecto
 
-**D.A.E.M.O.N.** es un asistente personal de escritorio de alto rendimiento para **Windows**, diseñado con una arquitectura dual única:
-1. **HUD Flotante Arc Reactor:** Un widget interactivo, transparente y minimalista con un espectro de audio radial reactivo en tiempo real (32 bandas dinámicas) y efectos neón multi-capa.
-2. **Dashboard Central Home:** Una interfaz de mando moderna inspirada en ChatGPT desarrollada con `CustomTkinter`, que incluye historial de chat interactivo, panel lateral retráctil y centro de ajustes completo.
+**D.A.E.M.O.N.** es un asistente virtual autónomo de escritorio de alto rendimiento diseñado para **Windows 10/11**. Combina automatización nativa del sistema operativo, visión, procesamiento de voz en tiempo real y capacidades cognitivas avanzadas gracias a su integración con modelos de lenguaje locales y en la nube.
 
-A diferencia de los asistentes convencionales, **DAEMON opera de manera 100% privada y local** utilizando [Ollama](https://ollama.com/), garantizando que tus conversaciones, comandos y datos de sistema nunca salgan de tu equipo.
+Su arquitectura se compone de dos interfaces complementarias:
+1. **HUD Flotante Espectral 3D (Nebulosa Galáctica):** Un widget interactivo, ligero y siempre visible con proyección de partículas en 3D (anillo orbital de 1400 partículas + núcleo esférico de plasma) que reacciona de forma dinámica a los estados de escucha, pensamiento y reposo.
+2. **Dashboard Central Home:** Un entorno de control completo con estética oscura de alta tecnología desarrollado en `CustomTkinter`, con historial de chat interactivo, panel de configuración visual, gestión de modelos IA y selector de temas neón.
+
+DAEMON opera con privacidad total: procesa el lenguaje de manera local a través de [Ollama](https://ollama.com/), garantizando que las conversaciones, la memoria persistente y las instrucciones nunca salgan del equipo.
 
 ---
 
-## 🌟 Novedades y Capacidades V2.0
+## 🌟 Capacidades y Características
 
-| Módulo | Capacidad | Descripción |
+| Módulo | Capacidad | Descripción Técnica |
 |---|---|---|
-| 🧠 **Cerebro Cognitivo** | IA Local + Memoria Persistente | Conexión directa a Ollama (`gemma4:31b-cloud`, `llama3.2`, etc.) con inyección de memoria persistente (`memoria_daemon.txt`). Trato leal y formal hacia su creador como *"Amo"*. |
-| 🎵 **Control Spotify** | Integración Multimedia Nativa | Búsqueda y reproducción directa de canciones o artistas específicos, pasar pistas, retroceder, pausar y reanudar sin desincronización. |
-| 🔊 **Volumen Maestro** | Windows CoreAudio (`pycaw`) | Control a porcentajes numéricos exactos (*"sube el volumen al 80%"*, *"baja al 20%"*), muteo instantáneo e incrementos relativos. |
-| 📸 **Captura Silenciosa** | Screenshots en Segundo Plano | Captura de pantalla instantánea guardada directamente en `Imágenes\Capturas DAEMON` sin desplegar consolas, PowerShell ni interferir con la pantalla. |
-| 🌦️ **Meteorología en Vivo** | Open-Meteo REST API | Consulta meteorológica en tiempo real y previsión detallada para el día de mañana (temperaturas, probabilidad de lluvia y condiciones) sin requerir API keys. |
-| 🌐 **Navegación Web** | Google Normal e Incógnito | Apertura de búsquedas en modo normal de forma predeterminada; el modo incógnito solo se activa bajo instrucción explícita. |
-| 🗣️ **Traductor Bidireccional** | Detección Lingüística | Traducción inmediata de oraciones o del contenido del portapapeles entre inglés y español sin rodeos. |
-| 📚 **Cultura Enciclopédica** | Wikipedia + LLM | Respuestas precisas sobre figuras históricas, mandatarios mundiales, física cuántica, ciencia y eventos globales. |
-| 🚀 **Gestor de Aplicaciones** | Lanzador y Terminador de Procesos | Inicia y cierra herramientas del sistema distinguiendo aplicaciones similares (ej. Antigravity IDE vs Visual Studio Code, Chrome, Spotify, CapCut, Office). |
-| 🎨 **HUD Neón Dinámico** | Espectro Radial & 5 Temas | 32 barras de frecuencia armónica con reactividad según estado (Escuchando, Pensando, En pausa) y 5 paletas de color (Ámbar Neón, Cyan Clásico, Verde Esmeralda, Rojo Plasma, Púrpura Cyberpunk). |
+| 🧠 **Cerebro Cognitivo** | IA Local + Memoria Persistente | Conexión directa a Ollama (`gemma4:31b-cloud`, `llama3.2`, `phi3`, etc.) con inyección de contexto a largo plazo (`memoria_daemon.txt`). Trato leal, formal y personalizado como *"Amo"*. |
+| 🌌 **HUD Nebulosa 3D** | Partículas Matemáticas Orbitantes | Renderizado a 30 FPS en `Canvas` con proyección en perspectiva 3D, mapa de colores optimizado mediante LUT y reactividad por estado (idle, escuchando, pensando, pausado). |
+| 🎙️ **Voz Bidireccional** | Reconocimiento y Síntesis Nativa | Detección de voz en segundo plano con umbrales adaptativos y síntesis vocal en español clara y natural sin latencia externa (`pyttsx3`). |
+| 🔊 **Volumen Maestro** | Windows CoreAudio (`pycaw`) | Control a porcentajes numéricos exactos (*"pon el volumen en 50%"*, *"baja al 20%"*), muteo instantáneo y variaciones relativas. |
+| 🎵 **Control Multimedia** | Integración Spotify & Medios | Búsqueda y reproducción directa de canciones o artistas en Spotify, control de pausas, pistas siguientes y anteriores. |
+| 📸 **Captura Silenciosa** | Screenshots en Background | Captura de pantalla instantánea almacenada en `Imágenes\Capturas DAEMON` sin desplegar ventanas ni interferir con el trabajo en pantalla. |
+| ⌨️ **Escritura Asistida** | Automatización de Entrada | Dictado y tipeo automatizado de texto mediante simulación de teclado y portapapeles con soporte íntegro de tildes y caracteres en español. |
+| 🌦️ **Meteorología en Vivo** | Open-Meteo REST API | Consulta meteorológica en tiempo real y pronósticos detallados para el día siguiente sin requerir claves de API externas. |
+| 🌐 **Navegación Web** | Búsquedas Normales e Incógnito | Apertura inteligente de navegadores web y consultas en Google o YouTube según instrucción directa. |
+| 🚀 **Gestor de Aplicaciones** | Lanzador y Terminador de Procesos | Inicia y cierra programas del sistema reconociendo herramientas de desarrollo (Antigravity IDE, VS Code, terminales), reproductores y navegadores. |
+| 🎨 **Paletas de Neón** | Temas Espectrales | Múltiples estilos visuales configurables: Nebulosa Espectral Multicolor, Ámbar Neón, Cyan Neón, Verde Esmeralda, Rojo Carmesí y Púrpura Cyberpunk. |
 
 ---
 
-## 🖥️ Estructura del HUD y Controles
+## 🖥️ Controles del Widget Flotante
 
 ```
-                 [ 32 Barras de Espectro Dinámico ]
-                           ╭──────────╮
-                        ╭──┤  ▲   ●   ├──╮   <-- Reactor Neón Central
-                        │  ╰──────────╯  │
-                        ╰────────────────╯
+                 [ Anillo Galáctico de 1400 Partículas 3D ]
+                            ╭──────────╮
+                         ╭──┤  ●    ●  ├──╮   <-- Ojos Reactivos Centrales
+                         │  ╰──────────╯  │
+                         ╰────────────────╯
 ```
 
-- **Clic Izquierdo:** Activa / Desactiva el micrófono para escuchar comandos.
-- **Doble Clic:** Despliega el **Dashboard Home** a pantalla completa estilo ChatGPT.
-- **Clic Derecho:** Abre el menú contextual rápido:
+- **Clic Izquierdo:** Alterna entre escuchar comandos o pausar la escucha activa.
+- **Doble Clic:** Abre o cierra el **Dashboard Central Home** a pantalla completa.
+- **Clic Derecho:** Despliega el menú contextual con accesos rápidos:
   - 🏠 *Home / Pantalla Completa*
   - 🎙️ *Escuchar / Hablar*
   - ⏸️ *Pausar / Silenciar*
   - 📸 *Captura en Segundo Plano*
   - ⚙️ *Configuración*
   - ❌ *Cerrar DAEMON*
-- **Arrastre:** Haz clic sostenido sobre el reactor para moverlo libremente a cualquier posición de la pantalla.
+- **Arrastre Sostenido:** Mueve el widget flotante con total libertad a cualquier punto de la pantalla.
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Tecnologías y Arquitectura
 
-- **Python 3.12+**
-- **IA Backend:** [Ollama](https://ollama.com/) (soporte para cualquier modelo local/cloud)
-- **GUI Principal:** `customtkinter` (Dark Theme)
-- **HUD Widget:** `tkinter` (Canvas 30 FPS + Win32 Colorkey Transparency)
-- **Audio de Windows:** `pycaw` + `comtypes` (CoreAudio API)
-- **Reconocimiento de Voz:** `SpeechRecognition` + `PyAudio`
-- **Síntesis de Voz (TTS):** `pyttsx3` (Voces en español nativas de Windows)
-- **Automatización del Sistema:** `pyautogui`, `pyperclip`, `psutil`
-- **Meteorología:** Open-Meteo Geocoding & Forecast APIs
+- **Lenguaje:** Python 3.12+ (tipado estricto verificado con Pyright / Pyrefly)
+- **Motor de IA:** [Ollama](https://ollama.com/) (compatible con modelos locales o cloud)
+- **Interfaz Principal:** `customtkinter` (Dark Theme)
+- **HUD Flotante:** `tkinter` con colorkey transparente nativo de Windows y matemáticas matriciales `numpy`
+- **Control de Audio:** `pycaw` + `comtypes` (Windows CoreAudio API)
+- **Entrada de Voz:** `SpeechRecognition` + `PyAudio`
+- **Salida de Voz:** `pyttsx3` (SAPI5 nativo de Windows)
+- **Automatización de Sistema:** `pyautogui`, `pyperclip`, `psutil`
+- **Servicios Web:** Open-Meteo APIs (Geocoding & Forecast)
 
 ---
 
@@ -86,11 +89,11 @@ A diferencia de los asistentes convencionales, **DAEMON opera de manera 100% pri
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/C7Dev-77/Jarvis-V1.0-C7Dev.git
-cd Jarvis-V1.0-C7Dev
+git clone https://github.com/C7Dev-77/DAEMON-v2.0.git
+cd DAEMON-v2.0
 ```
 
-### 2. Crear entorno virtual (Recomendado)
+### 2. Crear y activar entorno virtual
 ```bash
 python -m venv venv
 venv\Scripts\activate
@@ -106,53 +109,49 @@ pip install -r requirements.txt
 2. Descarga tu modelo de preferencia:
 ```bash
 ollama run gemma4:31b-cloud
-# o modelos ligeros como:
+# o modelos locales ligeros:
 # ollama pull llama3.2:3b
 # ollama pull gemma2:9b
 ```
 
 ### 5. Iniciar DAEMON
-Puedes iniciarlo con cualquiera de los dos comandos:
 ```bash
 python daemon_gui.py
-# o mediante el launcher de compatibilidad:
-python jarvis.py
 ```
 
 ---
 
-## 📦 Compilación a Ejecutable `.exe`
+## 📦 Compilación a Binario `.exe`
 
-DAEMON incluye la especificación lista para compilar un binario independiente de un solo archivo que funciona sin necesidad de tener Python instalado:
+DAEMON incluye la configuración completa de PyInstaller para compilar un binario independiente de un solo archivo que funciona sin requerir Python instalado en la máquina objetivo:
 
 ```bash
 pyinstaller --clean --noconfirm DAEMON.spec
 ```
 
-El ejecutable resultante se generará en la carpeta `dist\DAEMON.exe` con su icono nativo incrustado y todas las librerías empaquetadas.
+El ejecutable optimizado se generará en la carpeta `dist\DAEMON.exe` con su icono espectral de alta resolución incrustado y todas las dependencias empaquetadas.
 
 ---
 
-## 🎯 Ejemplos de Comandos por Voz
+## 🎯 Ejemplos de Comandos por Voz y Texto
 
-| Frase / Comando de Voz | Acción Ejecutada |
+| Instrucción / Comando | Acción Ejecutada |
 |---|---|
-| *"Pon [nombre de canción] en Spotify"* | Busca y reproduce el tema en la app oficial de Spotify. |
-| *"Pausa la música"* / *"Siguiente canción"* | Controla la reproducción multimedia. |
-| *"Sube el volumen al 80%"* / *"Baja el volumen"* | Ajusta el volumen maestro de Windows. |
-| *"Toma una captura de pantalla"* | Guarda el screenshot silenciosamente en segundo plano. |
-| *"¿Cómo estará el clima mañana?"* | Informa temperatura, mínimas, máximas y estado del cielo. |
-| *"Traduce 'Good morning, how are you?' a español"* | Traduce la frase al instante. |
-| *"¿Quién fue Nikola Tesla?"* / *"¿Qué es la gravedad?"* | Respuesta enciclopédica clara y sintética. |
-| *"Abre Google Chrome"* / *"Abre Google en incógnito"* | Abre el navegador en el modo solicitado. |
-| *"Abre Antigravity"* / *"Cierra Antigravity"* | Controla las herramientas y editores de desarrollo. |
-| *"Pausa"* / *"Entra en reposo"* | Silencia a DAEMON hasta que se le vuelva a ordenar. |
+| *"Pon [canción o artista] en Spotify"* | Inicia la reproducción inmediata en Spotify. |
+| *"Pausa la música"* / *"Siguiente pista"* | Control multimedia directo del reproductor. |
+| *"Sube el volumen al 70%"* / *"Silencia el audio"* | Ajuste preciso del volumen del sistema. |
+| *"Toma una captura de pantalla"* | Captura silenciosa guardada en la carpeta de imágenes. |
+| *"Escribe: Hola mundo desde DAEMON"* | Escribe automáticamente el texto en el cursor activo. |
+| *"¿Cómo estará el clima en Sincelejo mañana?"* | Previsión meteorológica completa (temperatura y lluvia). |
+| *"¿Quién fue Alan Turing?"* / *"Explícame la teoría de la relatividad"* | Razonamiento cognitivo detallado provisto por el LLM. |
+| *"Abre Google Chrome"* / *"Abre Antigravity"* | Lanzamiento de programas y herramientas de trabajo. |
+| *"Entra en modo pausa"* / *"Silencio"* | Pone al asistente en reposo hasta nueva orden. |
 
 ---
 
 ## ⚙️ Configuración (`daemon_config.json`)
 
-El archivo de configuración permite personalizar el comportamiento del asistente:
+El archivo de configuración permite ajustar todos los parámetros operativos:
 
 ```json
 {
@@ -163,19 +162,19 @@ El archivo de configuración permite personalizar el comportamiento del asistent
   "voice_enabled": true,
   "show_floating_widget": true,
   "mic_energy_threshold": 300,
-  "neon_theme": "amber"
+  "neon_theme": "spectral"
 }
 ```
 
-*Temas neón disponibles para `neon_theme`:* `"amber"`, `"cyan"`, `"green"`, `"red"`, `"purple"`.
+*Temas disponibles para `neon_theme`:* `"spectral"` (Nebulosa Galáctica 3D), `"amber"` (Ámbar Neón), `"cyan"` (Cyan Neón), `"green"` (Verde Esmeralda), `"red"` (Rojo Carmesí), `"purple"` (Púrpura Cyberpunk).
 
 ---
 
-## 🛡️ Privacidad Absoluta
+## 🛡️ Privacidad y Seguridad
 
-- **Sin Telemetría:** DAEMON no recopila ni transmite estadísticas ni datos de uso.
-- **Procesamiento Local:** Las inferencias de lenguaje se procesan en tu propia máquina a través del puerto local `11434` de Ollama.
-- **Archivos Locales:** Toda la memoria (`memoria_daemon.txt`), configuraciones y capturas permanecen exclusivamente en tu disco duro.
+- **Sin Telemetría:** DAEMON no recopila ni envía datos de telemetría a servidores de terceros.
+- **Procesamiento Local:** Las inferencias de lenguaje se ejecutan en tu propio equipo a través de la API local de Ollama (`localhost:11434`).
+- **Persistencia Aislada:** La memoria (`memoria_daemon.txt`), configuraciones y capturas residen exclusivamente en tu almacenamiento local.
 
 ---
 
