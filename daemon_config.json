@@ -1,0 +1,11 @@
+{
+  "owner_name": "Amo",
+  "default_city": "Sincelejo",
+  "model": "gemma4:31b-cloud",
+  "voice_speed": 180,
+  "voice_enabled": true,
+  "show_floating_widget": true,
+  "mic_energy_threshold": 300,
+  "neon_theme": "amber"
+}
+

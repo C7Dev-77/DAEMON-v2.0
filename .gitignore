@@ -1,22 +1,31 @@
-# Compiled python modules
+# Python bytecode y caches
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
 
-# Executables and builds
+# PyInstaller builds y ejecutables binarios
 build/
 dist/
-*.spec
 *.exe
 *.pkg
 *.toc
-*.zip
 *.pyz
+*.manifest
 
-# Logs and local databases
+# Entornos virtuales
+venv/
+env/
+.venv/
+ENV/
+
+# Archivos de registro y capturas locales
 *.log
-memoria_jarvis.txt
+Capturas*/
+capturas/
 
-# OS generated files
+# IDEs y sistemas operativos
+.vscode/
+.idea/
+.gemini/
 .DS_Store
 Thumbs.db
