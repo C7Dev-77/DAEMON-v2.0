@@ -22,13 +22,22 @@ import speech_recognition as sr
 import pyttsx3
 import winsound
 import numpy as np
+from PIL import Image
 
 # =============================================================================
 # SEGURIDAD Y PREVENCIÓN DE ERRORES PYAUTOGUI
 # =============================================================================
-pyautogui.FAILSAFE = False
+setattr(pyautogui, 'FAILSAFE', False)
 pyautogui.PAUSE = 0.05
 CREATE_NO_WINDOW = 0x08000000 if os.name == 'nt' else 0
+
+def type_text(txt: str):
+    """Escribe texto simulando teclado o pegado directo con soporte completo de tildes y caracteres especiales."""
+    try:
+        pyperclip.copy(txt)
+        pyautogui.hotkey('ctrl', 'v')
+    except Exception as e:
+        print(f"[ERROR TYPE] {e}")
 
 # =============================================================================
 # GESTIÓN DE RUTAS Y CONFIGURACIÓN PERSISTENTE (COMPATIBLE CON .EXE)
@@ -39,8 +48,9 @@ def get_base_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 def get_resource_path(rel_path):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, rel_path)
+    meipass = getattr(sys, '_MEIPASS', None)
+    if meipass:
+        return os.path.join(meipass, rel_path)
     return os.path.join(get_base_dir(), rel_path)
 
 CONFIG_FILE = os.path.join(get_base_dir(), "daemon_config.json")
@@ -112,14 +122,15 @@ class VoiceEngine:
         with self._lock:
             try:
                 engine = pyttsx3.init()
-                engine.setProperty("rate", config.get("voice_speed", 180))
+                engine.setProperty("rate", int(config.get("voice_speed", 180)))
                 voices = engine.getProperty("voices")
-                for v in voices:
-                    name_lower = v.name.lower()
-                    langs = [str(l).lower() for l in getattr(v, "languages", [])]
-                    if any("es" in l for l in langs) or "spanish" in name_lower or "helena" in name_lower or "sabina" in name_lower or "laura" in name_lower:
-                        engine.setProperty("voice", v.id)
-                        break
+                if isinstance(voices, (list, tuple)):
+                    for v in voices:
+                        name_lower = str(getattr(v, "name", "")).lower()
+                        langs = [str(l).lower() for l in getattr(v, "languages", [])]
+                        if any("es" in l for l in langs) or "spanish" in name_lower or "helena" in name_lower or "sabina" in name_lower or "laura" in name_lower:
+                            engine.setProperty("voice", v.id)
+                            break
                 clean_text = text.replace("*", "").replace("#", "").replace("`", "")
                 engine.say(clean_text)
                 engine.runAndWait()
@@ -141,7 +152,11 @@ def listen_audio(energy_boost=350):
             recognizer.energy_threshold += energy_boost
             recognizer.dynamic_energy_threshold = False
             audio = recognizer.listen(source, timeout=7, phrase_time_limit=14)
-            text = recognizer.recognize_google(audio, language="es-ES")
+            recognize_fn = getattr(recognizer, "recognize_google", None)
+            if recognize_fn:
+                text = recognize_fn(audio, language="es-ES")
+            else:
+                text = recognizer.recognize_google(audio, language="es-ES")  # type: ignore
             return text.lower().strip()
     except (sr.WaitTimeoutError, sr.UnknownValueError):
         return ""
@@ -155,22 +170,28 @@ def listen_audio(energy_boost=350):
 def set_exact_volume(scalar):
     try:
         from pycaw.pycaw import AudioUtilities
-        endpoint = AudioUtilities.GetSpeakers().EndpointVolume
-        endpoint.SetMasterVolumeLevelScalar(scalar, None)
-        pct = int(round(scalar * 100))
-        return f"Volumen ajustado al {pct}%, Amo."
+        speakers = AudioUtilities.GetSpeakers()
+        endpoint = getattr(speakers, "EndpointVolume", None) if speakers else None
+        if endpoint:
+            endpoint.SetMasterVolumeLevelScalar(scalar, None)
+            pct = round(scalar * 100)
+            return f"Volumen ajustado al {pct}%, Amo."
+        return "No se encontró el dispositivo de audio, Amo."
     except Exception:
         return "No pude ajustar el volumen en este momento, Amo."
 
 def adjust_volume_delta(delta):
     try:
         from pycaw.pycaw import AudioUtilities
-        endpoint = AudioUtilities.GetSpeakers().EndpointVolume
-        current = endpoint.GetMasterVolumeLevelScalar()
-        new_vol = max(0.0, min(1.0, current + delta))
-        endpoint.SetMasterVolumeLevelScalar(new_vol, None)
-        pct = int(round(new_vol * 100))
-        return f"Volumen ajustado al {pct}%, Amo."
+        speakers = AudioUtilities.GetSpeakers()
+        endpoint = getattr(speakers, "EndpointVolume", None) if speakers else None
+        if endpoint:
+            current = endpoint.GetMasterVolumeLevelScalar()
+            new_vol = max(0.0, min(1.0, current + delta))
+            endpoint.SetMasterVolumeLevelScalar(new_vol, None)
+            pct = round(new_vol * 100)
+            return f"Volumen ajustado al {pct}%, Amo."
+        raise RuntimeError("No speakers endpoint")
     except Exception:
         import ctypes
         user32 = ctypes.windll.user32
@@ -185,10 +206,13 @@ def adjust_volume_delta(delta):
 def toggle_audio_mute():
     try:
         from pycaw.pycaw import AudioUtilities
-        endpoint = AudioUtilities.GetSpeakers().EndpointVolume
-        new_mute = not endpoint.GetMute()
-        endpoint.SetMute(new_mute, None)
-        return "Audio silenciado, Amo." if new_mute else "Audio reactivado, Amo."
+        speakers = AudioUtilities.GetSpeakers()
+        endpoint = getattr(speakers, "EndpointVolume", None) if speakers else None
+        if endpoint:
+            new_mute = not endpoint.GetMute()
+            endpoint.SetMute(new_mute, None)
+            return "Audio silenciado, Amo." if new_mute else "Audio reactivado, Amo."
+        raise RuntimeError("No speakers endpoint")
     except Exception:
         pyautogui.press('volumemute')
         return "Audio silenciado, Amo."
@@ -660,7 +684,7 @@ def play_song_spotify(song_query):
 # =============================================================================
 def get_weather(city=None, is_tomorrow=False):
     if not city:
-        city = config.get("default_city", "Sincelejo")
+        city = str(config.get("default_city", "Sincelejo"))
     try:
         geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1&language=es"
         geo_resp = requests.get(geo_url, timeout=8).json()
@@ -739,7 +763,7 @@ conversation_history = []
 
 def query_ollama(prompt):
     global conversation_history
-    model = config.get("model", "gemma4:31b-cloud")
+    model = str(config.get("model", "gemma4:31b-cloud"))
     
     memory_text = ""
     if os.path.exists(MEMORY_FILE):
@@ -980,7 +1004,7 @@ def process_command(cmd_raw):
 
     # --- 12. CLIMA Y PRONÓSTICO (HOY Y MAÑANA) ---
     if any(w in cmd for w in ["clima", "tiempo", "temperatura", "pronóstico", "pronostico", "lloverá", "llovera", "va a llover"]):
-        city = config.get("default_city", "Sincelejo")
+        city = str(config.get("default_city", "Sincelejo"))
         for trig in [" en ", " de ", " para "]:
             if trig in cmd:
                 city = cmd.split(trig, 1)[1].strip()
@@ -1220,7 +1244,7 @@ class FloatingArcWidget:
         self._dragging = False
         self._offset_x = 0
         self._offset_y = 0
-        self._press_time = 0
+        self._press_time: float = 0.0
 
         self.blink_counter = 0
 
@@ -1345,7 +1369,7 @@ class FloatingArcWidget:
         cx = self.size // 2
         cy = self.size // 2
 
-        custom_theme = config.get("neon_theme", "spectral").lower()
+        custom_theme = str(config.get("neon_theme", "spectral")).lower()
 
         if self.is_paused:
             state_mode = 'paused'
@@ -1905,7 +1929,7 @@ class DaemonApp(ctk.CTk):
 
         ctk.CTkLabel(form_frame, text="Modelo de Inteligencia Artificial (Ollama):", font=("Segoe UI", 13, "bold"), text_color="#00d2ff").pack(anchor="w", padx=20, pady=(16, 4))
         
-        models = [config.get("model", "gemma4:31b-cloud")]
+        models: list[str] = [str(config.get("model", "gemma4:31b-cloud"))]
         try:
             r = requests.get("http://localhost:11434/api/tags", timeout=2).json()
             fetched = [m["name"] for m in r.get("models", [])]
@@ -1914,7 +1938,7 @@ class DaemonApp(ctk.CTk):
         except:
             pass
 
-        self.model_var = ctk.StringVar(value=config.get("model", "gemma4:31b-cloud"))
+        self.model_var = ctk.StringVar(value=str(config.get("model", "gemma4:31b-cloud")))
         model_row = ctk.CTkFrame(form_frame, fg_color="transparent")
         model_row.pack(fill="x", padx=20, pady=(0, 10))
 
@@ -1937,7 +1961,7 @@ class DaemonApp(ctk.CTk):
 
         ctk.CTkLabel(form_frame, text="Ciudad Predeterminada (para Clima y Pronósticos):", font=("Segoe UI", 13, "bold"), text_color="#00d2ff").pack(anchor="w", padx=20, pady=(10, 4))
         self.city_entry = ctk.CTkEntry(form_frame, font=("Segoe UI", 12), fg_color="#1c1f33", height=36)
-        self.city_entry.insert(0, config.get("default_city", "Sincelejo"))
+        self.city_entry.insert(0, str(config.get("default_city", "Sincelejo")))
         self.city_entry.pack(fill="x", padx=20, pady=(0, 10))
 
         ctk.CTkLabel(form_frame, text="Opciones de Voz y Síntesis:", font=("Segoe UI", 13, "bold"), text_color="#00d2ff").pack(anchor="w", padx=20, pady=(10, 4))
@@ -1958,7 +1982,7 @@ class DaemonApp(ctk.CTk):
             form_frame, from_=130, to=240, number_of_steps=22,
             command=lambda v: speed_label.configure(text=f"Velocidad de habla: {int(v)} wpm")
         )
-        self.speed_slider.set(config.get("voice_speed", 180))
+        self.speed_slider.set(float(config.get("voice_speed", 180)))
         self.speed_slider.pack(fill="x", padx=20, pady=(0, 16))
 
         self.widget_switch = ctk.CTkSwitch(
@@ -1980,7 +2004,7 @@ class DaemonApp(ctk.CTk):
             "Rojo Carmesí Neón",
             "Púrpura Cyberpunk Neón"
         ]
-        curr_theme = config.get("neon_theme", "spectral").lower()
+        curr_theme = str(config.get("neon_theme", "spectral")).lower()
         default_theme_label = theme_options[0]
         for opt in theme_options:
             if curr_theme in opt.lower() or ("spectral" in curr_theme and "nebulosa" in opt.lower()):
