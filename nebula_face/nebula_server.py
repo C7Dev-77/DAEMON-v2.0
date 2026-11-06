@@ -14,8 +14,17 @@ import os
 import json
 import socket
 import threading
+import multiprocessing
 import time
 import webview
+
+try:
+    from daemon_guard import acquire_single_instance_mutex, check_circuit_breaker
+except ImportError:
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    from daemon_guard import acquire_single_instance_mutex, check_circuit_breaker
 
 def get_base_dir():
     if getattr(sys, 'frozen', False):
@@ -205,5 +214,15 @@ class NebulaServer:
         webview.start(debug=False)
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    # 1. Candado de instancia única para la cara flotante
+    if not acquire_single_instance_mutex("Global\\DAEMON_NebulaFace_Instance_Mutex_77"):
+        sys.exit(0)
+
+    # 2. Disyuntor de seguridad (máximo 3 arranques en 10s)
+    if not check_circuit_breaker("NebulaFace", max_starts=3, window_seconds=10.0):
+        sys.exit(99)
+
     server = NebulaServer()
     server.run()
+

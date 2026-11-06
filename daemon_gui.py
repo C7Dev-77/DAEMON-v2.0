@@ -2,6 +2,7 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox
 import threading
+import multiprocessing
 import time
 import sys
 import os
@@ -25,6 +26,7 @@ import numpy as np
 from PIL import Image
 from typing import Optional
 from nebula_face.client import NebulaFaceClient
+from daemon_guard import acquire_single_instance_mutex, check_circuit_breaker
 
 # =============================================================================
 # SEGURIDAD Y PREVENCIÓN DE ERRORES PYAUTOGUI
@@ -108,8 +110,6 @@ def ensure_ollama_running():
         )
     except Exception as e:
         print(f"[ERROR INICIAR OLLAMA] {e}")
-
-ensure_ollama_running()
 
 # =============================================================================
 # MOTOR DE VOZ (TTS)
@@ -1281,16 +1281,27 @@ class FloatingArcWidget:
         def _cb_right(x: int, y: int) -> None:
             self.root.after(0, lambda: self._show_context_menu_coords(x, y))
 
+        def _on_connected() -> None:
+            # La cara 3D está conectada y activa; ocultar el canvas 2D
+            self.root.after(0, self.root.withdraw)
+
+        def _on_failed() -> None:
+            # Si no responde en 5s o falla, mantener el canvas visible y continuar
+            def _restore():
+                self.root.deiconify()
+                print("[NEBULA FACE] La cara 3D no respondió en 5s. Continuando con HUD estándar.")
+            self.root.after(0, _restore)
+
         self.nebula_client: Optional[NebulaFaceClient] = None
         if config.get("show_floating_widget", True):
             try:
                 self.nebula_client = NebulaFaceClient(
                     on_left_click=_cb_left,
                     on_double_click=_cb_double,
-                    on_right_click=_cb_right
+                    on_right_click=_cb_right,
+                    on_connected=_on_connected,
+                    on_failed=_on_failed
                 )
-                # Ocultar la ventana 2D antigua para dar paso a la Nebulosa 3D
-                self.root.withdraw()
             except Exception as e:
                 print(f"[NEBULA FACE INIT ERROR] {e}")
 
@@ -2249,11 +2260,24 @@ class DaemonApp(ctk.CTk):
         os._exit(0)
 
 # =============================================================================
-# ENTRADA PRINCIPAL
+# ENTRADA PRINCIPAL CON PROTECCIÓN ANTI-BUCLE Y CANDADO DE INSTANCIA
 # =============================================================================
 def main():
+    # 1. Candado de instancia única (la segunda copia sale al instante)
+    if not acquire_single_instance_mutex("Global\\DAEMON_Main_Instance_Mutex_77"):
+        sys.exit(0)
+
+    # 2. Disyuntor de seguridad (máximo 3 arranques en 10 segundos)
+    if not check_circuit_breaker("DAEMON_Main", max_starts=3, window_seconds=10.0):
+        sys.exit(99)
+
+    # 3. Iniciar servicios dependientes sin efectos secundarios previos
+    ensure_ollama_running()
+
+    # 4. Iniciar aplicación
     app = DaemonApp()
     app.mainloop()
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     main()

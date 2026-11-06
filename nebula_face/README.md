@@ -131,3 +131,4 @@ hiddenimports = [
 | pywebview & adaptadores | ~1.4 MB | +600 KB |
 | **Total Módulo Nebula 3D** | **~2.0 MB** | **< 1.0 MB** |
 *(Comparado con los +220 MB que requeriría Qt WebEngine)*
+
