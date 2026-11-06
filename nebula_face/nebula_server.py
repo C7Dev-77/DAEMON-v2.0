@@ -207,7 +207,7 @@ class NebulaServer:
             easy_drag=True,
             on_top=True,
             transparent=True,
-            background_color='#00000000'
+            background_color='#000000'
         )
 
         # 3. Start WebView GUI loop (blocking)
