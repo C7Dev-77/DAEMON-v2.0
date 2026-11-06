@@ -23,6 +23,8 @@ import pyttsx3
 import winsound
 import numpy as np
 from PIL import Image
+from typing import Optional
+from nebula_face.client import NebulaFaceClient
 
 # =============================================================================
 # SEGURIDAD Y PREVENCIÓN DE ERRORES PYAUTOGUI
@@ -1269,8 +1271,37 @@ class FloatingArcWidget:
         self.menu.add_separator()
         self.menu.add_command(label="❌  Cerrar DAEMON", command=self.master_app.shutdown)
 
+        # Conectar con la Nebulosa Galáctica 3D independiente
+        def _cb_left() -> None:
+            self.root.after(0, self.toggle_listen)
+
+        def _cb_double() -> None:
+            self.root.after(0, self.show_home)
+
+        def _cb_right(x: int, y: int) -> None:
+            self.root.after(0, lambda: self._show_context_menu_coords(x, y))
+
+        self.nebula_client: Optional[NebulaFaceClient] = None
+        if config.get("show_floating_widget", True):
+            try:
+                self.nebula_client = NebulaFaceClient(
+                    on_left_click=_cb_left,
+                    on_double_click=_cb_double,
+                    on_right_click=_cb_right
+                )
+                # Ocultar la ventana 2D antigua para dar paso a la Nebulosa 3D
+                self.root.withdraw()
+            except Exception as e:
+                print(f"[NEBULA FACE INIT ERROR] {e}")
+
         self._draw_reactor()
         self._animate()
+
+    def _show_context_menu_coords(self, x, y):
+        try:
+            self.menu.tk_popup(x, y)
+        finally:
+            self.menu.grab_release()
 
     def show_home(self):
         self.master_app.show_window("chat")
@@ -1307,11 +1338,15 @@ class FloatingArcWidget:
             self.is_listening = False
             self.master_app.set_status("En espera")
             winsound.MessageBeep(winsound.MB_ICONHAND)
+            if self.nebula_client:
+                self.nebula_client.set_state("idle")
         else:
             self.is_listening = True
             self.is_paused = False
             self.master_app.set_status("Escuchando...")
             winsound.MessageBeep(winsound.MB_ICONASTERISK)
+            if self.nebula_client:
+                self.nebula_client.set_state("listening")
             threading.Thread(target=self._listen_thread, daemon=True).start()
 
     def toggle_pause(self):
@@ -1320,9 +1355,13 @@ class FloatingArcWidget:
         if self.is_paused:
             self.master_app.set_status("Pausado")
             speak("DAEMON en modo pausa, Amo.")
+            if self.nebula_client:
+                self.nebula_client.set_state("paused")
         else:
             self.master_app.set_status("Listo")
             speak("Reactivado, Amo. A sus órdenes.")
+            if self.nebula_client:
+                self.nebula_client.set_state("idle")
 
     def cmd_screenshot(self):
         time.sleep(0.2)
@@ -1346,6 +1385,8 @@ class FloatingArcWidget:
                     continue
 
                 self.is_thinking = True
+                if self.nebula_client:
+                    self.nebula_client.set_state("thinking")
                 self.master_app.add_chat_message("Tú", cmd)
                 action_type, reply = process_command(cmd)
                 self.is_thinking = False
@@ -1361,7 +1402,13 @@ class FloatingArcWidget:
                 
                 if reply:
                     self.master_app.add_chat_message("DAEMON", reply)
+                    if self.nebula_client:
+                        self.nebula_client.set_state("speaking")
+                        self.nebula_client.set_level(0.7)
                     speak(reply)
+                    if self.nebula_client:
+                        self.nebula_client.set_state("idle")
+                        self.nebula_client.set_level(0.0)
             time.sleep(0.1)
 
     def _draw_reactor(self):
@@ -2186,6 +2233,11 @@ class DaemonApp(ctk.CTk):
         threading.Thread(target=speak, args=(msg,), daemon=True).start()
 
     def shutdown(self):
+        try:
+            if hasattr(self.widget, 'nebula_client') and self.widget.nebula_client:
+                self.widget.nebula_client.close()
+        except:
+            pass
         try:
             self.widget.root.destroy()
         except:
