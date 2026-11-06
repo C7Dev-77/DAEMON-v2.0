@@ -1,0 +1,7 @@
+{
+    "include": ["."],
+    "extraPaths": [
+        "C:\\Users\\Bienvenido\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages"
+    ],
+    "pythonPath": "C:\\Users\\Bienvenido\\AppData\\Local\\Programs\\Python\\Python312\\python.exe"
+}
