@@ -6,6 +6,5 @@
   "voice_enabled": true,
   "show_floating_widget": true,
   "mic_energy_threshold": 300,
-  "neon_theme": "amber"
+  "neon_theme": "spectral"
 }
-

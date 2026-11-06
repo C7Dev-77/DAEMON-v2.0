@@ -54,7 +54,7 @@ DEFAULT_CONFIG = {
     "voice_enabled": True,
     "show_floating_widget": True,
     "mic_energy_threshold": 300,
-    "neon_theme": "amber",
+    "neon_theme": "spectral",
 }
 
 def load_config():
@@ -1103,6 +1103,21 @@ class FloatingArcWidget:
         self._offset_y = 0
         self._press_time = 0
 
+        # Partículas de la Nebulosa Galáctica Espectral 3D
+        self.nebula_particles = []
+        random.seed(77)
+        for _ in range(88):
+            phi = random.uniform(-math.pi / 2, math.pi / 2)
+            theta = random.uniform(0, 2 * math.pi)
+            r_mult = random.uniform(0.82, 1.18)
+            speed = random.uniform(0.75, 1.3)
+            size_base = random.uniform(1.2, 2.6)
+            self.nebula_particles.append({
+                'phi': phi, 'theta': theta, 'r_mult': r_mult,
+                'speed': speed, 'size': size_base
+            })
+        self.blink_counter = 0
+
         self.root.bind('<ButtonPress-1>', self._on_press)
         self.root.bind('<B1-Motion>', self._on_drag)
         self.root.bind('<ButtonRelease-1>', self._on_release)
@@ -1223,149 +1238,267 @@ class FloatingArcWidget:
         self.canvas.delete("all")
         cx = self.size // 2
         cy = self.size // 2
-        r_ring = 35
 
-        # Paleta Neón Dinámica según estado del asistente y configuración
-        custom_theme = config.get("neon_theme", "cyan").lower()
-        
+        custom_theme = config.get("neon_theme", "spectral").lower()
+
         if self.is_paused:
-            # Modo Pausado / Silenciado (Rojo Neón)
-            glow = '#440810'
-            base = '#d41133'
-            bright = '#ff2244'
-            core = '#ffd6dc'
             state_mode = 'paused'
         elif self.is_thinking:
-            # Modo Pensando / IA Procesando (Ámbar / Oro Neón - Idéntico a su imagen)
-            glow = '#4a2500'
-            base = '#d47500'
-            bright = '#ffaa00'
-            core = '#fff2cc'
             state_mode = 'thinking'
         elif self.is_listening:
-            # Modo Escuchando Micrófono (Verde Neón Esmeralda)
-            glow = '#00381a'
-            base = '#00b359'
-            bright = '#00ff77'
-            core = '#dbffe8'
             state_mode = 'listening'
         else:
-            # Modo En Espera / Activo
             state_mode = 'idle'
-            if any(w in custom_theme for w in ["ambar", "ámbar", "amber", "oro", "naranja"]):
-                glow = '#4a2500'
-                base = '#d47500'
-                bright = '#ffaa00'
-                core = '#fff2cc'
-            elif any(w in custom_theme for w in ["verde", "green"]):
-                glow = '#00381a'
-                base = '#00b359'
-                bright = '#00ff77'
-                core = '#dbffe8'
-            elif any(w in custom_theme for w in ["rojo", "red"]):
-                glow = '#440810'
-                base = '#d41133'
-                bright = '#ff2244'
-                core = '#ffd6dc'
-            elif any(w in custom_theme for w in ["purpura", "púrpura", "purple", "violeta"]):
-                glow = '#38004d'
-                base = '#9900cc'
-                bright = '#cc33ff'
-                core = '#f7e6ff'
-            else:
-                # Cyan Neón Tecnológico (Azul DAEMON)
-                glow = '#002e4d'
-                base = '#0099dd'
-                bright = '#00d2ff'
-                core = '#e0f8ff'
 
-        # 1. Base circular oscura sólida para click / arrastre
+        if any(w in custom_theme for w in ["reactor", "triangular", "triangulo"]):
+            self._draw_classic_reactor(cx, cy, state_mode, custom_theme)
+        else:
+            self._draw_galactic_nebula(cx, cy, state_mode, custom_theme)
+
+    def _draw_galactic_nebula(self, cx, cy, state_mode, custom_theme):
+        r_base = 34
+        self.blink_counter = (self.blink_counter + 1) % 180
+
+        # 1. Base esférica cósmica profunda para click y arrastre
+        self.canvas.create_oval(cx - 44, cy - 44, cx + 44, cy + 44, fill='#020308', outline='')
+
+        # 2. Anillo HUD Cyberpunk Tecnológico (Inspirado en HUD Sci-Fi)
+        self.canvas.create_oval(cx - 39, cy - 39, cx + 39, cy + 39, outline='#0a1c2b', width=1)
+        
+        # Segmentos de arco giratorio HUD
+        arc_ang = (self.pulse_angle * 0.9) % 360
+        hud_cyan = '#00f0ff' if state_mode != 'paused' else '#551122'
+        self.canvas.create_arc(
+            cx - 39, cy - 39, cx + 39, cy + 39,
+            start=arc_ang, extent=42, style='arc',
+            outline=hud_cyan, width=1.5
+        )
+        self.canvas.create_arc(
+            cx - 39, cy - 39, cx + 39, cy + 39,
+            start=arc_ang + 180, extent=42, style='arc',
+            outline=hud_cyan, width=1.5
+        )
+
+        # 3. Rayos de Espectro Radial cuando está escuchando o procesando
+        if state_mode == 'listening':
+            for bi in range(16):
+                b_ang = (bi / 16.0) * (2 * math.pi) + math.radians(self.pulse_angle * 0.5)
+                h_ray = 3 + int(5.0 * (math.sin(self.pulse_angle * 0.2 + bi * 0.8) ** 2))
+                rx1 = cx + int((r_base + 3) * math.cos(b_ang))
+                ry1 = cy + int((r_base + 3) * math.sin(b_ang))
+                rx2 = cx + int((r_base + 3 + h_ray) * math.cos(b_ang))
+                ry2 = cy + int((r_base + 3 + h_ray) * math.sin(b_ang))
+                self.canvas.create_line(rx1, ry1, rx2, ry2, fill='#00ffff', width=1.5)
+
+        # 4. Partículas de la Nebulosa Galáctica 3D (Inspirada en el logo espectral)
+        tilt = math.radians(22)
+        cos_t = math.cos(tilt)
+        sin_t = math.sin(tilt)
+
+        # Velocidad según estado
+        if state_mode == 'thinking':
+            speed_mult = 3.2
+        elif state_mode == 'listening':
+            speed_mult = 1.6
+        elif state_mode == 'paused':
+            speed_mult = 0.25
+        else:
+            speed_mult = 1.0
+
+        render_list = []
+        for p in self.nebula_particles:
+            cur_theta = p['theta'] + math.radians(self.pulse_angle * p['speed'] * speed_mult)
+            
+            # Dinámica radial
+            if state_mode == 'listening':
+                r_pulse = math.sin(cur_theta * 3 + self.pulse_angle * 0.2) * 3.5
+            elif state_mode == 'thinking':
+                r_pulse = -2.5 + math.sin(cur_theta * 4 + self.pulse_angle * 0.3) * 1.5
+            elif state_mode == 'paused':
+                r_pulse = 0
+            else:
+                r_pulse = math.sin(cur_theta * 2.5 + self.pulse_angle * 0.08) * 1.8
+
+            r = r_base * p['r_mult'] + r_pulse
+            
+            # Coordenadas 3D
+            x3d = r * math.cos(p['phi']) * math.cos(cur_theta)
+            y3d = r * math.sin(p['phi'])
+            z3d = r * math.cos(p['phi']) * math.sin(cur_theta)
+
+            # Proyección isométrica con inclinación
+            px = cx + x3d
+            py = cy + (y3d * cos_t - z3d * sin_t)
+
+            # Mapeo de color espectral por latitud y tema
+            norm_y = (py - (cy - r_base)) / (2 * r_base)
+
+            if state_mode == 'paused':
+                col = '#4a1525' if z3d > 0 else '#240812'
+                core_col = '#883344'
+            elif any(w in custom_theme for w in ["cyan", "azul"]):
+                col = '#00f5ff' if z3d > 0 else '#005588'
+                core_col = '#e0ffff'
+            elif any(w in custom_theme for w in ["ambar", "ámbar", "amber", "oro"]):
+                col = '#ffaa00' if z3d > 0 else '#884400'
+                core_col = '#fff4cc'
+            elif any(w in custom_theme for w in ["verde", "green"]):
+                col = '#00ff88' if z3d > 0 else '#006633'
+                core_col = '#d4ffe6'
+            elif any(w in custom_theme for w in ["rojo", "red"]):
+                col = '#ff2244' if z3d > 0 else '#880818'
+                core_col = '#ffd6dc'
+            elif any(w in custom_theme for w in ["purpura", "púrpura", "purple"]):
+                col = '#d800ff' if z3d > 0 else '#5a0088'
+                core_col = '#f5d4ff'
+            else:
+                # Tema Espectral Nebulosa Completo (Multicolor exactamente como su imagen)
+                if norm_y < 0.36:
+                    # Polo Superior: Cyan Neón y Azul Espacial
+                    col = '#00f5ff' if z3d > 0 else '#004488'
+                    core_col = '#ffffff'
+                elif norm_y < 0.64:
+                    # Banda Ecuatorial: Violeta Eléctrico y Magenta Cósmico
+                    col = '#d800ff' if z3d > 0 else '#4a0066'
+                    core_col = '#ffb8f8'
+                else:
+                    # Polo Inferior: Ámbar Solar y Coral Llameante
+                    col = '#ff8800' if z3d > 0 else '#882200'
+                    core_col = '#ffeeaa'
+
+            pt_size = p['size'] * (1.3 if z3d > 0 else 0.7)
+            render_list.append((z3d, px, py, pt_size, col, core_col))
+
+        # Ordenar por profundidad (fondo primero, frente después)
+        render_list.sort(key=lambda item: item[0])
+
+        for z3d, px, py, s, col, core_col in render_list:
+            self.canvas.create_oval(px - s, py - s, px + s, py + s, fill=col, outline='')
+            if z3d > 10 and s > 1.6:
+                self.canvas.create_oval(px - 0.7, py - 0.7, px + 0.7, py + 0.7, fill=core_col, outline='')
+
+        # 5. Horizonte de Sucesos Central / Núcleo Oscuro Profundo
+        r_void = 14
+        self.canvas.create_oval(cx - r_void, cy - r_void, cx + r_void, cy + r_void, fill='#020309', outline='#120824', width=1.5)
+        self.canvas.create_oval(cx - r_void + 3, cy - r_void + 3, cx + r_void - 3, cy + r_void - 3, outline='#1d0f35', width=1)
+
+        # 6. Ojos de IA Cósmica / Pulsar Dual (Inspirado en su imagen 2)
+        eye_y = cy
+        eye_lx = cx - 5.5
+        eye_rx = cx + 5.5
+
+        # Parpadeo natural
+        is_blinking = (175 <= self.blink_counter <= 179) and (state_mode != 'listening')
+
+        if state_mode == 'paused':
+            # Ojos cerrados / línea tenue
+            self.canvas.create_line(eye_lx - 2, eye_y, eye_lx + 2, eye_y, fill='#441525', width=1)
+            self.canvas.create_line(eye_rx - 2, eye_y, eye_rx + 2, eye_y, fill='#441525', width=1)
+        elif is_blinking:
+            self.canvas.create_line(eye_lx - 2, eye_y, eye_lx + 2, eye_y, fill='#88aacc', width=1)
+            self.canvas.create_line(eye_rx - 2, eye_y, eye_rx + 2, eye_y, fill='#88aacc', width=1)
+        elif state_mode == 'listening':
+            # Ojos abiertos y resplandecientes en cyan
+            er = 2.4
+            self.canvas.create_oval(eye_lx - er - 1.5, eye_y - er - 1.5, eye_lx + er + 1.5, eye_y + er + 1.5, fill='#004466', outline='')
+            self.canvas.create_oval(eye_rx - er - 1.5, eye_y - er - 1.5, eye_rx + er + 1.5, eye_y + er + 1.5, fill='#004466', outline='')
+            self.canvas.create_oval(eye_lx - er, eye_y - er, eye_lx + er, eye_y + er, fill='#ffffff', outline='#00f5ff')
+            self.canvas.create_oval(eye_rx - er, eye_y - er, eye_rx + er, eye_y + er, fill='#ffffff', outline='#00f5ff')
+        elif state_mode == 'thinking':
+            # Ojos pulsantes violeta
+            er = 1.8 + math.sin(self.pulse_angle * 0.3) * 0.6
+            self.canvas.create_oval(eye_lx - er, eye_y - er, eye_lx + er, eye_y + er, fill='#ffffff', outline='#d800ff')
+            self.canvas.create_oval(eye_rx - er, eye_y - er, eye_rx + er, eye_y + er, fill='#ffffff', outline='#d800ff')
+        else:
+            # Idle: Dos puntos brillantes con aura suave
+            er = 1.8
+            self.canvas.create_oval(eye_lx - er, eye_y - er, eye_lx + er, eye_y + er, fill='#ffffff', outline='#77aaff')
+            self.canvas.create_oval(eye_rx - er, eye_y - er, eye_rx + er, eye_y + er, fill='#ffffff', outline='#77aaff')
+
+    def _draw_classic_reactor(self, cx, cy, state_mode, custom_theme):
+        r_ring = 35
+        
+        if state_mode == 'paused':
+            glow = '#440810'; base = '#d41133'; bright = '#ff2244'; core = '#ffd6dc'
+        elif state_mode == 'thinking':
+            glow = '#4a2500'; base = '#d47500'; bright = '#ffaa00'; core = '#fff2cc'
+        elif state_mode == 'listening':
+            glow = '#00381a'; base = '#00b359'; bright = '#00ff77'; core = '#dbffe8'
+        else:
+            if any(w in custom_theme for w in ["ambar", "ámbar", "amber", "oro"]):
+                glow = '#4a2500'; base = '#d47500'; bright = '#ffaa00'; core = '#fff2cc'
+            elif any(w in custom_theme for w in ["verde", "green"]):
+                glow = '#00381a'; base = '#00b359'; bright = '#00ff77'; core = '#dbffe8'
+            elif any(w in custom_theme for w in ["rojo", "red"]):
+                glow = '#440810'; base = '#d41133'; bright = '#ff2244'; core = '#ffd6dc'
+            elif any(w in custom_theme for w in ["purpura", "púrpura", "purple"]):
+                glow = '#38004d'; base = '#9900cc'; bright = '#cc33ff'; core = '#f7e6ff'
+            else:
+                glow = '#002e4d'; base = '#0099dd'; bright = '#00d2ff'; core = '#e0f8ff'
+
         self.canvas.create_oval(cx - r_ring - 12, cy - r_ring - 12, cx + r_ring + 12, cy + r_ring + 12, fill='#070812', outline='')
 
-        # 2. ESPECTRO DE AUDIO RADIAL (32 Barras Neón Dinámicas)
         num_bars = 32
         for i in range(num_bars):
             ang = (i / num_bars) * (2 * math.pi) + math.radians(self.pulse_angle * 0.4)
             cos_a = math.cos(ang)
             sin_a = math.sin(ang)
 
-            # Dinámica armónica de frecuencia
             if state_mode == 'listening':
-                # Pulso de audio activo y dinámico
                 h = 3 + int(9.0 * (math.sin(self.pulse_angle * 0.18 + i * 0.65) ** 2 * 0.6 + 
                                   math.cos(self.pulse_angle * 0.12 - i * 0.8) ** 2 * 0.4))
             elif state_mode == 'thinking':
-                # Vórtice de procesamiento rápido
                 h = 3 + int(8.0 * (math.sin(self.pulse_angle * 0.3 + i * 0.75) ** 2))
             elif state_mode == 'paused':
                 h = 2
             else:
-                # Respiración suave idle
                 h = 2 + int(6.0 * (math.sin(self.pulse_angle * 0.08 + i * 0.45) ** 2))
 
             r_in = r_ring + 2
             r_out = r_in + h
-
             x1 = cx + int(r_in * cos_a)
             y1 = cy + int(r_in * sin_a)
             x2 = cx + int(r_out * cos_a)
             y2 = cy + int(r_out * sin_a)
 
-            # Capa 1: Resplandor neón difuso
             self.canvas.create_line(x1, y1, x2, y2, fill=glow, width=3.5)
-            # Capa 2: Barra neón nítida
             self.canvas.create_line(x1, y1, x2, y2, fill=bright, width=1.5)
-            # Capa 3: Micro-partícula brillante en la punta del espectro
             self.canvas.create_oval(x2 - 1, y2 - 1, x2 + 1, y2 + 1, fill=core, outline='')
 
-        # 3. ANILLO EXTERIOR DE NEÓN CON RESPLANDOR
         self.canvas.create_oval(cx - r_ring, cy - r_ring, cx + r_ring, cy + r_ring, outline=glow, width=5)
         self.canvas.create_oval(cx - r_ring, cy - r_ring, cx + r_ring, cy + r_ring, outline=bright, width=2, fill='#0b0d1b')
         self.canvas.create_oval(cx - r_ring, cy - r_ring, cx + r_ring, cy + r_ring, outline=core, width=0.8)
 
-        # 4. SEGMENTOS DE ARCO GIRATORIO HUD SCI-FI (3 Arcos con rotación)
         r_mid = 26
         for j in range(3):
             arc_start = (self.pulse_angle * 1.4 + j * 120) % 360
             self.canvas.create_arc(
                 cx - r_mid, cy - r_mid, cx + r_mid, cy + r_mid,
-                start=arc_start, extent=45, style='arc',
-                outline=glow, width=4.5
+                start=arc_start, extent=45, style='arc', outline=glow, width=4.5
             )
             self.canvas.create_arc(
                 cx - r_mid, cy - r_mid, cx + r_mid, cy + r_mid,
-                start=arc_start, extent=45, style='arc',
-                outline=bright, width=1.8
+                start=arc_start, extent=45, style='arc', outline=bright, width=1.8
             )
 
-        # 5. ANILLO INTERIOR FINO
         r_in_ring = 19
         self.canvas.create_oval(cx - r_in_ring, cy - r_in_ring, cx + r_in_ring, cy + r_in_ring, outline=glow, width=2.5)
         self.canvas.create_oval(cx - r_in_ring, cy - r_in_ring, cx + r_in_ring, cy + r_in_ring, outline=base, width=1)
 
-        # 6. REACTOR TRIANGULAR NEÓN
         tr = 14
         pts = [
             cx, cy - tr,
             cx - int(tr * 0.866), cy + int(tr * 0.5),
             cx + int(tr * 0.866), cy + int(tr * 0.5)
         ]
-        # Resplandor exterior difuso
         self.canvas.create_polygon(pts, outline=glow, fill='', width=4.5)
-        # Borde neón vivo
         self.canvas.create_polygon(pts, outline=bright, fill='', width=2)
-        # Filamento blanco central
         self.canvas.create_polygon(pts, outline=core, fill='', width=0.8)
 
-        # 7. NÚCLEO DE ENERGÍA CENTRAL / ESFERA DE PLASMA
-        # Halo difuso
         self.canvas.create_oval(cx - 5, cy + 0.5, cx + 5, cy + 10.5, fill=glow, outline='')
-        # Esfera neón
         self.canvas.create_oval(cx - 3.5, cy + 2, cx + 3.5, cy + 9, fill=bright, outline='')
-        # Núcleo incandescente
         self.canvas.create_oval(cx - 1.5, cy + 4, cx + 1.5, cy + 7, fill=core, outline='')
 
-        # 8. MARCADORES CARDINALES HUD (4 Notches en rotación inversa)
         for k in range(4):
             k_ang = math.radians(-self.pulse_angle * 0.5 + k * 90)
             kx1 = cx + int((r_ring - 4) * math.cos(k_ang))
@@ -1423,25 +1556,38 @@ class DaemonApp(ctk.CTk):
         logo_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         logo_frame.pack(fill="x", padx=16, pady=(24, 16))
 
+        logo_file = get_resource_path("daemon_logo.png")
+        if os.path.exists(logo_file):
+            try:
+                pil_logo = Image.open(logo_file)
+                self.sidebar_logo_img = ctk.CTkImage(light_image=pil_logo, dark_image=pil_logo, size=(38, 38))
+                logo_img_lbl = ctk.CTkLabel(logo_frame, image=self.sidebar_logo_img, text="")
+                logo_img_lbl.pack(side="left", padx=(0, 10))
+            except Exception:
+                pass
+
+        header_text_frame = ctk.CTkFrame(logo_frame, fg_color="transparent")
+        header_text_frame.pack(side="left", fill="both", expand=True)
+
         title_lbl = ctk.CTkLabel(
-            logo_frame, text="⚡ D.A.E.M.O.N.",
-            font=("Segoe UI", 22, "bold"), text_color="#00d2ff"
+            header_text_frame, text="⚡ D.A.E.M.O.N.",
+            font=("Segoe UI", 18, "bold"), text_color="#00d2ff"
         )
         title_lbl.pack(anchor="w")
 
         sub_lbl = ctk.CTkLabel(
-            logo_frame, text="Asistente de IA • v2.0 Pro",
-            font=("Segoe UI", 11), text_color="#7b849b"
+            header_text_frame, text="Asistente de IA • v2.0 Pro",
+            font=("Segoe UI", 10), text_color="#7b849b"
         )
         sub_lbl.pack(anchor="w")
 
         self.status_pill = ctk.CTkLabel(
-            logo_frame,
+            self.sidebar,
             text=f"● En línea | {config.get('model', 'gemma4:31b-cloud')}",
             font=("Segoe UI", 11, "bold"), text_color="#00ff88",
             fg_color="#182329", corner_radius=8, padx=8, pady=3
         )
-        self.status_pill.pack(anchor="w", pady=(8, 0))
+        self.status_pill.pack(anchor="w", padx=16, pady=(0, 12))
 
         new_chat_btn = ctk.CTkButton(
             self.sidebar, text="＋ Nueva Conversación",
@@ -1784,18 +1930,19 @@ class DaemonApp(ctk.CTk):
             self.widget_switch.deselect()
         self.widget_switch.pack(anchor="w", padx=20, pady=(0, 16))
 
-        ctk.CTkLabel(form_frame, text="Color y Estilo Neón del Arc Reactor:", font=("Segoe UI", 13, "bold"), text_color="#00d2ff").pack(anchor="w", padx=20, pady=(0, 4))
+        ctk.CTkLabel(form_frame, text="Estilo Visual y Neón del Asistente:", font=("Segoe UI", 13, "bold"), text_color="#00d2ff").pack(anchor="w", padx=20, pady=(0, 4))
         theme_options = [
-            "Ámbar / Oro Neón (Akatsuki / Iron Man)",
+            "🌌 Nebulosa Galáctica Espectral (Multicolor 3D)",
+            "Ámbar / Oro Neón (Akatsuki / Cyberpunk)",
             "Cyan Neón (Azul Clásico DAEMON)",
             "Verde Esmeralda Neón",
             "Rojo Carmesí Neón",
             "Púrpura Cyberpunk Neón"
         ]
-        curr_theme = config.get("neon_theme", "amber").lower()
+        curr_theme = config.get("neon_theme", "spectral").lower()
         default_theme_label = theme_options[0]
         for opt in theme_options:
-            if curr_theme in opt.lower():
+            if curr_theme in opt.lower() or ("spectral" in curr_theme and "nebulosa" in opt.lower()):
                 default_theme_label = opt
                 break
         self.theme_var = ctk.StringVar(value=default_theme_label)
@@ -1844,7 +1991,9 @@ class DaemonApp(ctk.CTk):
         config["show_floating_widget"] = bool(self.widget_switch.get())
 
         sel_theme = self.theme_var.get().lower()
-        if "ambar" in sel_theme or "ámbar" in sel_theme or "oro" in sel_theme:
+        if "nebulosa" in sel_theme or "espectral" in sel_theme or "galáctica" in sel_theme:
+            config["neon_theme"] = "spectral"
+        elif "ambar" in sel_theme or "ámbar" in sel_theme or "oro" in sel_theme:
             config["neon_theme"] = "amber"
         elif "verde" in sel_theme:
             config["neon_theme"] = "green"
