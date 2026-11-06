@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D.A.E.M.O.N. - Nebula Face 3D Demo & Testbed</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #04050d;
+            background: radial-gradient(circle at center, #0a0e24 0%, #030408 100%);
+            color: #e0f2fe;
+        }
+
+        #nebula-stage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        /* Test Control Panel (Glassmorphic Cyberpunk HUD) */
+        #control-panel {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 340px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            background: rgba(14, 18, 36, 0.78);
+            border: 1px solid rgba(0, 245, 255, 0.28);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 245, 255, 0.12);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #control-panel.collapsed {
+            transform: translateX(360px);
+        }
+
+        #toggle-panel-btn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 101;
+            background: rgba(14, 18, 36, 0.85);
+            border: 1px solid #00f5ff;
+            color: #00f5ff;
+            border-radius: 8px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(0, 245, 255, 0.2);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .header-title h2 {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #00f5ff;
+            text-transform: uppercase;
+        }
+
+        .badge-fps {
+            font-size: 11px;
+            background: rgba(0, 255, 136, 0.15);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin: 14px 0 8px 0;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-action:hover {
+            background: rgba(0, 245, 255, 0.15);
+            border-color: #00f5ff;
+            color: #00f5ff;
+        }
+
+        .btn-action.active {
+            background: #00f5ff;
+            color: #040814;
+            border-color: #00f5ff;
+            box-shadow: 0 0 12px rgba(0, 245, 255, 0.5);
+        }
+
+        .control-row {
+            margin-bottom: 10px;
+        }
+
+        .control-row label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #cbd5e1;
+            margin-bottom: 4px;
+        }
+
+        .control-row span {
+            color: #00f5ff;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00f5ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px #00f5ff;
+        }
+
+        .select-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        select {
+            flex: 1;
+            background: #151a30;
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            color: #e2e8f0;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Checkbox switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155; transition: .3s; border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+            background-color: white; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #00f5ff; }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        /* Custom Scrollbar */
+        #control-panel::-webkit-scrollbar { width: 5px; }
+        #control-panel::-webkit-scrollbar-thumb { background: rgba(0, 245, 255, 0.3); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="nebula-stage"></div>
+
+    <button id="toggle-panel-btn" onclick="togglePanel()">⚙️ Controles</button>
+
+    <div id="control-panel">
+        <div class="header-title">
+            <h2>Nebulosa 3D Demo</h2>
+            <div id="fps-badge" class="badge-fps">60 FPS</div>
+        </div>
+
+        <div class="section-label">Máquina de Estados</div>
+        <div class="btn-grid">
+            <button class="btn-action active" onclick="changeState('idle', this)">Idle</button>
+            <button class="btn-action" onclick="changeState('listening', this)">Listening</button>
+            <button class="btn-action" onclick="changeState('thinking', this)">Thinking</button>
+            <button class="btn-action" onclick="changeState('speaking', this)">Speaking</button>
+            <button class="btn-action" onclick="changeState('error', this)">Error</button>
+            <button class="btn-action" onclick="changeState('paused', this)">Paused</button>
+        </div>
+
+        <div class="section-label">Audio Reactivo</div>
+        <div class="control-row">
+            <label>Nivel de Mic / Voz: <span id="val-audio">0.00</span></label>
+            <input type="range" id="slider-audio" min="0" max="1" step="0.01" value="0" oninput="updateAudio(this.value)">
+        </div>
+
+        <div class="control-row">
+            <label>Graves (Bass): <span id="val-bass">0.00</span></label>
+            <input type="range" id="slider-bass" min="0" max="1" step="0.01" value="0" oninput="updateBands()">
+        </div>
+
+        <div class="control-row">
+            <label>Medios (Mid): <span id="val-mid">0.00</span></label>
+            <input type="range" id="slider-mid" min="0" max="1" step="0.01" value="0" oninput="updateBands()">
+        </div>
+
+        <div class="control-row">
+            <label>Agudos (Treble): <span id="val-treble">0.00</span></label>
+            <input type="range" id="slider-treble" min="0" max="1" step="0.01" value="0" oninput="updateBands()">
+        </div>
+
+        <div class="section-label">Ajustes Visuales GPU</div>
+        <div class="control-row">
+            <label>Resplandor (Bloom): <span id="val-bloom">0.95</span></label>
+            <input type="range" id="slider-bloom" min="0" max="2" step="0.05" value="0.95" oninput="updateBloom(this.value)">
+        </div>
+
+        <div class="control-row">
+            <label>Velocidad de Turbulencia: <span id="val-speed">1.0x</span></label>
+            <input type="range" id="slider-speed" min="0.2" max="3" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
+        </div>
+
+        <div class="section-label">Paleta de Color</div>
+        <div class="select-row">
+            <select id="select-theme" onchange="nebula.setTheme(this.value)">
+                <option value="spectral">🌌 Nebulosa Espectral (Cyan/Violeta)</option>
+                <option value="aurora">🌌 Aurora Boreal (Verde/Azul)</option>
+                <option value="gold">⚡ Oro Solar / Akatsuki (Ámbar/Rojo)</option>
+                <option value="monochrome">⚪ Monocromo Cyberpunk (Blanco/Hielo)</option>
+            </select>
+        </div>
+
+        <div class="section-label">Calidad & Rendimiento</div>
+        <div class="select-row">
+            <select id="select-quality" onchange="nebula.setQuality(this.value)">
+                <option value="auto">Auto (Adaptativa a 45+ FPS)</option>
+                <option value="high">Alta (80.000 partículas)</option>
+                <option value="medium">Media (60.000 partículas)</option>
+                <option value="low">Baja (35.000 partículas)</option>
+            </select>
+        </div>
+
+        <div class="toggle-row">
+            <span>Anillo Espectral de Voz</span>
+            <label class="switch">
+                <input type="checkbox" checked onchange="nebula.toggleSpectrumRing(this.checked)">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="toggle-row">
+            <span>Simulador de Pulso de Audio</span>
+            <label class="switch">
+                <input type="checkbox" id="sim-audio-switch" onchange="toggleAudioSim(this.checked)">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Local Offline Scripts -->
+    <script src="js/three.min.js"></script>
+    <script src="js/nebula_core.js"></script>
+
+    <script>
+        let nebula = null;
+        let simInterval = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const stage = document.getElementById('nebula-stage');
+            nebula = new GalacticNebula(stage, {
+                particleCount: 80000,
+                theme: 'spectral',
+                quality: 'auto',
+                showSpectrumRing: true,
+                bloomIntensity: 0.95,
+                onFpsUpdate: (fps) => {
+                    const badge = document.getElementById('fps-badge');
+                    badge.innerText = fps + " FPS";
+                    if (fps >= 50) {
+                        badge.style.color = '#00ff88';
+                        badge.style.borderColor = '#00ff88';
+                    } else if (fps >= 35) {
+                        badge.style.color = '#ffaa00';
+                        badge.style.borderColor = '#ffaa00';
+                    } else {
+                        badge.style.color = '#ff2244';
+                        badge.style.borderColor = '#ff2244';
+                    }
+                }
+            });
+        });
+
+        function togglePanel() {
+            const p = document.getElementById('control-panel');
+            p.classList.toggle('collapsed');
+        }
+
+        function changeState(state, btn) {
+            nebula.setState(state);
+            document.querySelectorAll('.btn-action').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+        }
+
+        function updateAudio(val) {
+            document.getElementById('val-audio').innerText = Number(val).toFixed(2);
+            nebula.setAudioLevel(val);
+        }
+
+        function updateBands() {
+            const b = parseFloat(document.getElementById('slider-bass').value);
+            const m = parseFloat(document.getElementById('slider-mid').value);
+            const t = parseFloat(document.getElementById('slider-treble').value);
+            document.getElementById('val-bass').innerText = b.toFixed(2);
+            document.getElementById('val-mid').innerText = m.toFixed(2);
+            document.getElementById('val-treble').innerText = t.toFixed(2);
+            nebula.setBands(b, m, t);
+        }
+
+        function updateBloom(val) {
+            document.getElementById('val-bloom').innerText = Number(val).toFixed(2);
+            nebula.setBloom(val);
+        }
+
+        function updateSpeed(val) {
+            document.getElementById('val-speed').innerText = Number(val).toFixed(1) + 'x';
+            nebula.setSpeed(val);
+        }
+
+        function toggleAudioSim(enabled) {
+            if (simInterval) clearInterval(simInterval);
+            if (!enabled) {
+                updateAudio(0);
+                return;
+            }
+            let angle = 0;
+            simInterval = setInterval(() => {
+                angle += 0.15;
+                const level = Math.max(0, Math.sin(angle) * 0.7 + Math.random() * 0.3);
+                document.getElementById('slider-audio').value = level;
+                updateAudio(level);
+                const b = Math.max(0, Math.cos(angle * 0.8) * 0.8);
+                document.getElementById('slider-bass').value = b;
+                updateBands();
+            }, 60);
+        }
+    </script>
+</body>
+</html>

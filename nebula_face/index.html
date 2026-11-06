@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>D.A.E.M.O.N. 3D Nebula Orb</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: transparent !important;
+            cursor: grab;
+        }
+
+        body:active {
+            cursor: grabbing;
+        }
+
+        #nebula-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border-radius: 50%;
+            /* Soft radial mask to give clean spherical boundary with feather edge */
+            mask-image: radial-gradient(circle at center, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 99%);
+            -webkit-mask-image: radial-gradient(circle at center, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 99%);
+        }
+
+        canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            pointer-events: none;
+        }
+
+        /* pywebview native drag region */
+        .drag-region {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            z-index: 999;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div id="nebula-container"></div>
+    <div id="drag-overlay" class="drag-region pywebview-drag-region"></div>
+
+    <!-- Local Offline Three.js -->
+    <script src="js/three.min.js"></script>
+    <script src="js/nebula_core.js"></script>
+
+    <script>
+        let nebula = null;
+        let pressTimer = null;
+        let startX = 0, startY = 0;
+        let isDragging = false;
+        let clickCount = 0;
+        let clickTimeout = null;
+
+        // Initialize Nebula Core
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('nebula-container');
+            nebula = new GalacticNebula(container, {
+                particleCount: 80000,
+                theme: 'spectral',
+                quality: 'auto',
+                showSpectrumRing: true,
+                bloomIntensity: 0.95
+            });
+
+            // Set up gesture & event handling
+            const overlay = document.getElementById('drag-overlay');
+
+            overlay.addEventListener('mousedown', (e) => {
+                startX = e.screenX;
+                startY = e.screenY;
+                isDragging = false;
+            });
+
+            overlay.addEventListener('mousemove', (e) => {
+                if (Math.hypot(e.screenX - startX, e.screenY - startY) > 5) {
+                    isDragging = true;
+                }
+            });
+
+            overlay.addEventListener('mouseup', (e) => {
+                if (isDragging) {
+                    emitToPython('posicion_final_al_arrastrar', { x: e.screenX, y: e.screenY });
+                    return;
+                }
+
+                if (e.button === 0) {
+                    // Left click detection (single vs double)
+                    clickCount++;
+                    if (clickCount === 1) {
+                        clickTimeout = setTimeout(() => {
+                            clickCount = 0;
+                            emitToPython('click_izquierdo', {});
+                        }, 260);
+                    } else if (clickCount === 2) {
+                        clearTimeout(clickTimeout);
+                        clickCount = 0;
+                        emitToPython('doble_clic', {});
+                    }
+                }
+            });
+
+            overlay.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                emitToPython('click_derecho', { x: e.screenX, y: e.screenY });
+            });
+        });
+
+        // Communication Bridge with Python
+        function emitToPython(eventType, data) {
+            try {
+                if (window.pywebview && window.pywebview.api) {
+                    window.pywebview.api.on_event(eventType, data);
+                } else if (window.qtBridge) {
+                    window.qtBridge.on_event(eventType, JSON.stringify(data));
+                }
+            } catch (err) {
+                console.log("[EVENT]", eventType, data);
+            }
+        }
+
+        // Global functions exposed to Python
+        window.nebulaSetState = function(state) {
+            if (nebula) nebula.setState(state);
+        };
+
+        window.nebulaSetLevel = function(level) {
+            if (nebula) nebula.setAudioLevel(level);
+        };
+
+        window.nebulaSetBands = function(bass, mid, treble) {
+            if (nebula) nebula.setBands(bass, mid, treble);
+        };
+
+        window.nebulaSetTheme = function(theme) {
+            if (nebula) nebula.setTheme(theme);
+        };
+
+        window.nebulaSetQuality = function(quality) {
+            if (nebula) nebula.setQuality(quality);
+        };
+
+        window.nebulaToggleSpectrum = function(visible) {
+            if (nebula) nebula.toggleSpectrumRing(visible);
+        };
+
+        window.nebulaSetBloom = function(intensity) {
+            if (nebula) nebula.setBloom(intensity);
+        };
+    </script>
+</body>
+</html>
